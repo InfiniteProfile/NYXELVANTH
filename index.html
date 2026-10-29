@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070711">
+  <meta name="description" content="Explore NYXELVANTH, a continuously expanding universe of deterministic digital identities.">
+  <title>NYXELVANTH — One Universe. Infinite Identities.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop stop-color='%2300e5ff'/%3E%3Cstop offset='1' stop-color='%237b4dff'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='%23070711'/%3E%3Cpath d='M15 46V18h6l22 18V18h6v28h-6L21 28v18z' fill='url(%23g)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#feedViewport">Skip to profiles</a>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="stars stars-back" aria-hidden="true"></div>
+  <div class="stars stars-front" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="site-header">
+      <div class="header-topline">
+        <a class="brand" href="./" aria-label="NYXELVANTH home">
+          <span class="brand-emblem" aria-hidden="true">
+            <svg viewBox="0 0 44 44" role="img" focusable="false">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#7f65ff"/>
+                  <stop offset="0.55" stop-color="#12ddff"/>
+                  <stop offset="1" stop-color="#fa4f90"/>
+                </linearGradient>
+              </defs>
+              <circle cx="22" cy="22" r="18" fill="none" stroke="url(#brandGradient)" stroke-width="1.5" opacity=".85"/>
+              <path d="M12 31V13h4l12 11V13h4v18h-4L16 20v11z" fill="url(#brandGradient)"/>
+              <circle cx="34" cy="9" r="2" fill="#12ddff"/>
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <span class="brand-name">NYXELVANTH</span>
+            <span class="brand-tagline">ONE UNIVERSE. INFINITE IDENTITIES.</span>
+          </span>
+        </a>
+        <div class="engine-status" title="Profiles are generated deterministically in your browser">
+          <span class="status-orb" aria-hidden="true"></span>
+          <span id="engineStatus">INFINITE ENGINE ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="header-bottomline">
+        <div class="section-heading">
+          <span class="eyebrow">THE IDENTITY ARCHIVE</span>
+          <h1 id="pageHeading">Explore the infinite</h1>
+        </div>
+        <form id="searchForm" class="search-form" role="search" autocomplete="off">
+          <label class="sr-only" for="searchMode">Search type</label>
+          <select id="searchMode" class="search-mode" aria-label="Search by ID or name">
+            <option value="id">ID</option>
+            <option value="name">Name</option>
+          </select>
+          <label class="sr-only" for="profileSearch">Search the profile universe</label>
+          <input id="profileSearch" name="q" type="search" inputmode="search" placeholder="Find any profile ID…" spellcheck="false" autocapitalize="off" aria-describedby="searchHint">
+          <button class="search-button" type="submit" aria-label="Search profiles">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.3 4.3"/></svg>
+          </button>
+        </form>
+      </div>
+      <div class="header-meta">
+        <p id="searchHint" class="search-hint">Enter any positive decimal ID — even an extremely long one.</p>
+        <div class="ready-count"><span class="count-dot" aria-hidden="true"></span><span id="readyCount">300 identities ready</span></div>
+      </div>
+      <p id="searchFeedback" class="search-feedback" role="status" aria-live="polite" hidden></p>
+    </header>
+
+    <main id="feedViewport" class="feed-viewport" tabindex="0" aria-label="Infinite profile universe">
+      <section id="universeView" class="universe-view">
+        <div class="universe-intro">
+          <div>
+            <p class="eyebrow">A LIVING DIGITAL CIVILIZATION</p>
+            <h2>Every identity opens a new horizon<span>.</span></h2>
+            <p class="intro-copy">Move through a universe that keeps unfolding. Every identity is generated from its own exact ID, so the same ID always resolves to the same profile.</p>
+          </div>
+          <div class="universe-symbol" aria-hidden="true">
+            <span class="orbit orbit-a"></span><span class="orbit orbit-b"></span><span class="orbit orbit-c"></span>
+            <span class="core-star"></span>
+          </div>
+        </div>
+
+        <div class="feed-toolbar">
+          <div>
+            <span class="eyebrow">LIVE EXPLORATION</span>
+            <h2>Discover identities</h2>
+          </div>
+          <div class="batch-indicator"><span class="batch-pulse" aria-hidden="true"></span><span id="batchStatus">Continuous generation enabled</span></div>
+        </div>
+        <div class="feed-footnote" aria-live="polite">
+          <span class="footnote-star" aria-hidden="true">✦</span>
+          <span id="feedFootnote">The next identities are prepared automatically as you explore.</span>
+        </div>
+
+        <div id="listStage" class="list-stage" aria-label="Generated profile cards">
+          <div id="topSpacer" class="virtual-spacer" aria-hidden="true"></div>
+          <div id="profileGrid" class="profile-grid" role="list"></div>
+          <div id="bottomSpacer" class="virtual-spacer" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section id="profileView" class="profile-view" hidden aria-label="Individual profile"></section>
+      <noscript>
+        <div class="noscript-message">NYXELVANTH requires JavaScript to generate identities and power the infinite profile universe.</div>
+      </noscript>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
