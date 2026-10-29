@@ -105,9 +105,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .list-stage { width: 100%; min-width: 0; }
 .virtual-spacer { width: 100%; min-height: 0; pointer-events: none; }
 .profile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--column-gap); row-gap: var(--row-gap); width: 100%; align-items: stretch; }
-.profile-card { --accent: #8a72ff; position: relative; display: flex; flex-direction: column; min-width: 0; height: var(--card-height); padding: 15px; overflow: hidden; isolation: isolate; border: 1px solid rgba(151,145,232,.19); border-radius: 16px; color: var(--text); text-decoration: none; background: linear-gradient(155deg, rgba(24,24,49,.91), rgba(13,14,30,.91)); box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 8px 24px rgba(0,0,0,.12); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.profile-card { --accent: #8a72ff; position: relative; display: flex; flex-direction: column; min-width: 0; height: var(--card-height); padding: 15px; overflow: hidden; isolation: isolate; contain: layout paint style; border: 1px solid rgba(151,145,232,.19); border-radius: 16px; color: var(--text); text-decoration: none; background: linear-gradient(155deg, rgba(24,24,49,.91), rgba(13,14,30,.91)); box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 6px 18px rgba(0,0,0,.1); transition: transform .16s ease, border-color .16s ease; }
 .profile-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .72; }
-.profile-card::after { content: ""; position: absolute; z-index: -1; width: 150px; height: 150px; top: -102px; right: -70px; border-radius: 50%; background: var(--accent); opacity: .12; filter: blur(40px); }
+.profile-card::after { content: ""; position: absolute; z-index: -1; width: 150px; height: 150px; top: -102px; right: -70px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 24%, transparent), transparent 72%); opacity: .45; }
 .profile-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 52%, transparent); box-shadow: 0 15px 36px rgba(0,0,0,.22), 0 0 23px color-mix(in srgb, var(--accent) 11%, transparent); }
 .card-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 17px; }
 .profile-label { display: inline-flex; align-items: center; gap: 6px; color: #9e9dbb; font-size: 9px; font-weight: 750; letter-spacing: .13em; }
@@ -124,7 +124,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .explore-link { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: 10px; font-weight: 750; white-space: nowrap; }
 .explore-link svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .18s ease; }
 .profile-card:hover .explore-link svg { transform: translateX(3px); }
-.feed-footnote { display: flex; align-items: center; justify-content: flex-start; gap: 9px; min-height: 0; margin: 0 2px 12px; color: #777796; font-size: 10px; line-height: 1.45; text-align: left; }
+.feed-footnote { position: sticky; top: 7px; z-index: 4; display: flex; align-items: center; justify-content: flex-start; gap: 9px; width: fit-content; max-width: calc(100% - 4px); min-height: 30px; max-height: 30px; overflow: hidden; padding: 6px 10px; margin: 0 2px 12px; border: 1px solid rgba(133,127,222,.14); border-radius: 9px; color: #a8a7c4; background: rgba(9,10,25,.94); box-shadow: 0 8px 22px rgba(0,0,0,.14); font-size: 10px; line-height: 1.45; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .18s ease, visibility .18s ease; }
+.feed-footnote.is-visible { opacity: 1; visibility: visible; }
 .footnote-star { color: var(--cyan); }
 
 .profile-view { padding-top: clamp(20px, 4vh, 45px); padding-bottom: 50px; }
@@ -220,7 +221,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .avatar { width: 76px; height: 76px; border-radius: 20px; }
   .card-name { font-size: 14px; }
   .card-sector { font-size: 10px; }
-  .feed-footnote { margin-bottom: 10px; font-size: 9px; }
+  .feed-footnote { min-height: 30px; max-height: 30px; margin-bottom: 10px; font-size: 9px; }
+  .profile-card::after { opacity: .22; }
+  .profile-card { box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 3px 10px rgba(0,0,0,.08); transition: border-color .12s ease; }
+  .stars-front { display: none; }
   .profile-view { padding-top: 18px; }
   .profile-hero { grid-template-columns: minmax(0,1fr); gap: 24px; padding: 22px 17px; border-radius: 19px; }
   .profile-art { max-width: 178px; border-radius: 25px; }

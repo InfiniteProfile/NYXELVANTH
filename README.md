@@ -20,8 +20,9 @@ NYXELVANTH is a no-framework, static website that generates deterministic digita
 ## Infinite feed behavior
 
 - The initial logical batch contains 300 identities.
-- As the visible browsing position approaches roughly 100 identities into the available batch, the script begins preparing another batch of 300.
-- Further batches are triggered automatically before the user reaches the prepared range's end.
+- As the visible browsing position approaches roughly profile 100, the next 300 IDs become available; no expensive portrait batch is pre-rendered in the background.
+- Further batches are triggered by real feed scrolling when the remaining range reaches the 200-profile prefetch threshold; returning to a tab or resizing the window does not start background batches.
+- New batches extend the available ID range in constant time. Profiles and SVG portraits are built lazily only as cards approach the viewport, rather than precomputing 300 portrait SVGs for every batch.
 - Cards are virtualized: only a small window around the viewport is in the DOM at once. This keeps DOM usage bounded during long sessions.
 - The virtual scroll coordinate is periodically rebased while keeping the same profile at the same viewport position. This avoids accumulating an enormous browser document height; it is not an instruction to scroll the user's visible content.
 - No Load More control, pagination stop, final card, or application-level profile cap is used.
@@ -45,13 +46,14 @@ Browsers and URL implementations have practical limits on extremely large text f
 - Virtual rendering limits live card DOM to the visible range plus a small overscan window.
 - A bounded least-recently-used profile cache keeps at most 900 generated profile descriptors.
 - Identity portraits are local SVG data URIs; no remote image request is needed.
-- Scroll work is animation-frame scheduled; the scroll listener is passive.
+- Scroll work is animation-frame scheduled; the scroll listener is passive. Existing card nodes are reused as the viewport window moves, so the entire visible grid is not rebuilt on every scroll step.
+- The inline feed-status line keeps its layout space but fades away during downward scrolling. It reappears briefly on upward scrolling or after 30 seconds without scrolling; this project does not include advertising placements or an ad network.
 - The layout honors `prefers-reduced-motion` and adapts to narrow screens.
 
 ## Basic verification checklist
 
 - [ ] Open `index.html` and confirm the profile cards appear.
-- [ ] Scroll until approximately profile 100; the generation status should briefly show that the next 300 are being prepared.
+- [ ] Scroll until approximately profile 100; the available count should increase by 300 in response to scrolling, not just because the page loaded or was resized.
 - [ ] Keep scrolling; new batches should arrive without a Load More button or automatic visual scrolling.
 - [ ] Search IDs such as `1`, `99`, `100000`, `999999999999999999999999999999`, and `123456789012345678901234567890123456789`.
 - [ ] Open a profile and refresh the `?profile=ID` URL.

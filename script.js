@@ -3,12 +3,14 @@
 (() => {
   const BATCH_SIZE = 300n;
   const PREFETCH_DISTANCE = 200n;
-  const MAX_PHYSICAL_ROWS = 600;
-  const TAIL_ROWS = 24;
+  const MAX_PHYSICAL_ROWS = 2000;
+  const TAIL_ROWS = 64;
   const OVERSCAN_ROWS = 3;
-  const REBASE_SHIFT_ROWS = 150n;
+  const REBASE_SHIFT_ROWS = 600n;
   const CACHE_LIMIT = 900;
   const NAME_SCAN_LIMIT = 2000n;
+  const FOOTNOTE_IDLE_DELAY = 30_000;
+  const FOOTNOTE_VISIBLE_DURATION = 4_500;
 
   const FIRST_NAMES = [
     'Nova', 'Lyra', 'Astra', 'Orion', 'Vega', 'Nyra', 'Caelum', 'Elara', 'Zev', 'Mira',
@@ -48,10 +50,13 @@
   let generatedCount = 300n;
   let baseRow = 0n;
   let generationInProgress = false;
-  let generationFailures = 0;
   let scrollFrame = 0;
   let toastTimer = 0;
+  let footnoteIdleTimer = 0;
+  let footnoteHideTimer = 0;
+  let lastHandledScrollTop = 0;
   let lastRangeKey = '';
+  const renderedCardNodes = new Map();
   let cachedLayout = { columns: 1, cardHeight: 252, rowGap: 10, pitch: 262 };
   const profileCache = new Map();
 
@@ -219,6 +224,7 @@
     const profile = getProfile(id);
     const card = document.createElement('a');
     card.className = 'profile-card';
+    card.dataset.profileId = id;
     card.href = `?profile=${encodeURIComponent(id)}`;
     card.setAttribute('role', 'listitem');
     card.setAttribute('aria-label', `Explore ${profile.name}, profile ID ${id}`);
@@ -283,26 +289,45 @@
 
     topSpacer.style.height = `${firstRow * pitch}px`;
     bottomSpacer.style.height = `${Math.max(0, span - endRow) * pitch}px`;
-    const fragment = document.createDocumentFragment();
-    let renderedCards = 0;
+
+    // Build only the IDs needed for this viewport window. Existing cards are reused
+    // instead of rebuilding every visible card each time a row crosses the viewport.
+    const desiredIds = [];
     for (let localRow = firstRow; localRow < endRow; localRow += 1) {
       const absoluteRow = baseRow + BigInt(localRow);
       for (let col = 0; col < columns; col += 1) {
         const index = absoluteRow * BigInt(columns) + BigInt(col);
         const idNumber = index + 1n;
         if (idNumber > generatedCount) break;
-        fragment.appendChild(makeCard(idNumber.toString()));
-        renderedCards += 1;
+        desiredIds.push(idNumber.toString());
       }
     }
-    profileGrid.replaceChildren(fragment);
-    if (renderedCards > 0) {
-      const newMeasure = measureLayout();
-      if (newMeasure.columns !== columns || Math.abs(newMeasure.pitch - pitch) > 1) {
-        lastRangeKey = '';
-        renderVisible(true);
-        return;
+
+    const desiredSet = new Set(desiredIds);
+    for (const child of Array.from(profileGrid.children)) {
+      const id = child.dataset.profileId;
+      if (!desiredSet.has(id)) {
+        child.remove();
+        renderedCardNodes.delete(id);
       }
+    }
+
+    for (let index = 0; index < desiredIds.length; index += 1) {
+      const id = desiredIds[index];
+      let card = renderedCardNodes.get(id);
+      if (!card) {
+        card = makeCard(id);
+        renderedCardNodes.set(id, card);
+      }
+      const currentAtIndex = profileGrid.children[index] || null;
+      if (currentAtIndex !== card) profileGrid.insertBefore(card, currentAtIndex);
+    }
+
+    while (profileGrid.children.length > desiredIds.length) {
+      const lastChild = profileGrid.lastElementChild;
+      if (!lastChild) break;
+      renderedCardNodes.delete(lastChild.dataset.profileId);
+      lastChild.remove();
     }
   }
 
@@ -315,48 +340,33 @@
   function refreshVirtualSpace() {
     lastRangeKey = '';
     renderVisible(true);
-    maybeRequestBatch();
   }
 
-  function requestAnimationTick() {
-    return new Promise((resolve) => setTimeout(resolve, 0));
-  }
-
-  async function generateNextBatch() {
+  function generateNextBatch() {
     if (generationInProgress) return;
     generationInProgress = true;
-    batchStatus.textContent = 'Preparing the next 300 identities…';
-    feedFootnote.textContent = 'The identity engine is preparing the next batch in the background.';
+    const previousCount = generatedCount;
     try {
-      let id = incrementDecimalId(generatedCount.toString());
-      for (let i = 0; i < Number(BATCH_SIZE); i += 1) {
-        getProfile(id);
-        id = incrementDecimalId(id);
-        if (i > 0 && i % 60 === 0) await requestAnimationTick();
-      }
+      // Profiles are deterministic and can be generated directly from their IDs.
+      // Reserve the next batch here; portrait SVGs and card DOM are built only when
+      // those profiles approach the viewport, avoiding 300 unnecessary SVG builds.
       generatedCount += BATCH_SIZE;
-      generationFailures = 0;
       updateCounts();
-      batchStatus.textContent = 'Continuous generation enabled';
-      feedFootnote.textContent = 'The next identities are prepared automatically as you explore.';
+      batchStatus.textContent = '300 more identities unlocked';
+      feedFootnote.textContent = '300 more identities are available. Keep scrolling to unlock the next batch.';
       refreshVirtualSpace();
     } catch (error) {
-      generationFailures += 1;
-      batchStatus.textContent = 'Recovering the generation engine…';
-      feedFootnote.textContent = 'A temporary generation issue occurred. The engine will retry automatically.';
+      generatedCount = previousCount;
+      updateCounts();
+      batchStatus.textContent = 'Generation paused — scroll to retry';
+      feedFootnote.textContent = 'A temporary generation issue occurred. The engine will retry when you continue scrolling.';
       console.error('NYXELVANTH batch generation failed:', error);
-      setTimeout(() => {
-        generationInProgress = false;
-        maybeRequestBatch(true);
-      }, Math.min(5000, 250 * (2 ** Math.min(generationFailures, 4))));
-      return;
+    } finally {
+      generationInProgress = false;
     }
-    generationInProgress = false;
-    // If a very fast scroll has already approached the new edge, continue preparing without waiting for another event.
-    maybeRequestBatch();
   }
 
-  function maybeRequestBatch(forceRetry = false) {
+  function maybeRequestBatch() {
     if (profileView.hidden === false || generationInProgress) return;
     const { columns, pitch } = cachedLayout;
     const offsetInStage = feedViewport.scrollTop - stageOffsetTop();
@@ -364,8 +374,7 @@
     const visibleEndLocal = Math.ceil((localScroll + feedViewport.clientHeight) / pitch) + OVERSCAN_ROWS;
     const absoluteEndIndex = (baseRow + BigInt(Math.max(0, visibleEndLocal))) * BigInt(columns);
     const remaining = generatedCount - absoluteEndIndex;
-    const closeToEdge = remaining <= PREFETCH_DISTANCE;
-    if (closeToEdge || forceRetry) void generateNextBatch();
+    if (remaining <= PREFETCH_DISTANCE) generateNextBatch();
   }
 
   function maybeRebaseCoordinates() {
@@ -377,12 +386,18 @@
     const threshold = Math.min(span - TAIL_ROWS - 1, Math.max(35, Math.floor(span * 0.68)));
     const totalRows = countRows(generatedCount, cachedLayout.columns);
 
-    if (localRow >= threshold && baseRow + REBASE_SHIFT_ROWS < totalRows) {
-      const shift = Number(REBASE_SHIFT_ROWS);
-      baseRow += REBASE_SHIFT_ROWS;
-      feedViewport.scrollTop = Math.max(0, feedViewport.scrollTop - shift * pitch);
-      lastRangeKey = '';
-      return;
+    if (localRow >= Math.max(threshold, 150) && baseRow < totalRows - 1n) {
+      // Rebase less often than before. If the scroll window is still short, use a
+      // smaller safe shift so scrollTop never clamps to zero and loses visual position.
+      const safeLocalShift = Math.max(1, localRow - 120);
+      const shiftBig = BigInt(Math.min(Number(REBASE_SHIFT_ROWS), safeLocalShift));
+      if (baseRow + shiftBig < totalRows) {
+        const shift = Number(shiftBig);
+        baseRow += shiftBig;
+        feedViewport.scrollTop = Math.max(0, feedViewport.scrollTop - shift * pitch);
+        lastRangeKey = '';
+        return;
+      }
     }
     if (localRow < 30 && baseRow > 0n) {
       const shiftBig = baseRow < REBASE_SHIFT_ROWS ? baseRow : REBASE_SHIFT_ROWS;
@@ -393,11 +408,48 @@
     }
   }
 
+  function showFootnoteTemporarily() {
+    if (!feedFootnote) return;
+    clearTimeout(footnoteHideTimer);
+    feedFootnote.classList.add('is-visible');
+    footnoteHideTimer = setTimeout(() => {
+      feedFootnote.classList.remove('is-visible');
+    }, FOOTNOTE_VISIBLE_DURATION);
+  }
+
+  function hideFootnote() {
+    if (!feedFootnote) return;
+    clearTimeout(footnoteHideTimer);
+    feedFootnote.classList.remove('is-visible');
+  }
+
+  function updateFeedLineForScroll(direction) {
+    if (direction < 0) {
+      // Scrolling upward refreshes the temporary inline status line immediately.
+      showFootnoteTemporarily();
+    } else if (direction > 0) {
+      // Keep the feed visually clear while the visitor is actively moving down.
+      hideFootnote();
+    }
+    if (direction !== 0) {
+      clearTimeout(footnoteIdleTimer);
+      footnoteIdleTimer = setTimeout(showFootnoteTemporarily, FOOTNOTE_IDLE_DELAY);
+    }
+  }
+
   function onFeedScroll() {
     if (scrollFrame) return;
     scrollFrame = requestAnimationFrame(() => {
       scrollFrame = 0;
+      const observedTop = feedViewport.scrollTop;
+      const delta = observedTop - lastHandledScrollTop;
+      const direction = Math.abs(delta) < 1 ? 0 : (delta < 0 ? -1 : 1);
+      updateFeedLineForScroll(direction);
       maybeRebaseCoordinates();
+      // Rebase adjustments are bookkeeping, not user scroll direction. Store the
+      // compensated value so the browser's follow-up scroll event cannot look like
+      // an upward gesture and interrupt the native touch-scroll momentum.
+      lastHandledScrollTop = feedViewport.scrollTop;
       renderVisible();
       maybeRequestBatch();
     });
@@ -642,12 +694,14 @@
     universeView.hidden = false;
     pageHeading.textContent = 'Explore the infinite';
     renderVisible(true);
+    lastHandledScrollTop = feedViewport.scrollTop;
+    clearTimeout(footnoteIdleTimer);
+    footnoteIdleTimer = setTimeout(showFootnoteTemporarily, FOOTNOTE_IDLE_DELAY);
     feedViewport.addEventListener('scroll', onFeedScroll, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         lastRangeKey = '';
         renderVisible(true);
-        maybeRequestBatch();
       }
     });
     window.addEventListener('resize', () => {
@@ -664,9 +718,7 @@
       }
       lastRangeKey = '';
       renderVisible(true);
-      maybeRequestBatch();
     }, { passive: true });
-    maybeRequestBatch();
   }
 
   initialize();
